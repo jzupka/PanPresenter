@@ -130,7 +130,9 @@ void GLImageVideo::newVideoFrame(const QVideoFrame &frame){
     this->loaded = false;
     this->painter->newVideoFrame(this, (QVideoFrame&)frame);
     this->loaded = true;
-    this->painter->updateGL();
+    if (!this->painter->animating){
+        this->painter->add_animator(0);
+    }
 }
 
 void GLImageVideo::update_view(){

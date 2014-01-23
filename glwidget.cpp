@@ -61,8 +61,13 @@ GLWidget::GLWidget(const QGLFormat fmt, QWidget *parent, QGLWidget *shareWidget)
     this->pos = 0;
     this->scroll_pos = 0;
     this->thumb_window_size = 7;
+    this->big_image_bias_static = -0.5;
+    this->big_image_bias_moving = -0.15;
+    this->big_image_bias = this->big_image_bias_static;
+    this->thumbnail_bias = -0.5;
     this->old_scroll_time = QTime::currentTime();
     this->setMouseTracking(true);
+    QThread::currentThread()->setPriority(QThread::HighestPriority);
 }
 
 GLWidget::~GLWidget()
@@ -94,6 +99,7 @@ void GLWidget::initGL(){
 void GLWidget::initializeGL()
 {
     //makeObject();
+    this->makeCurrent();
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glEnable(GL_BLEND);
@@ -111,6 +117,8 @@ void GLWidget::initializeGL()
 
 void GLWidget::paintGL()
 {
+    this->blockSignals(true);
+    this->parent()->blockSignals(true);
     QTime t = QTime::currentTime();
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
@@ -125,6 +133,7 @@ void GLWidget::paintGL()
     glFrustum(-this->wh * 0.1, this->wh * 0.1, -this->hw * 0.1, this->hw * 0.1, 0.05, 4.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
+    glTexEnvf(GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, this->big_image_bias);
     for(int i = 0; i < active_imgs.size(); ++i){
         GLAnimatedImage *image = active_imgs[i];
         if (image->isLoaded()){
@@ -135,6 +144,7 @@ void GLWidget::paintGL()
         }
     }
     if (this->thumbnail_alfa > 0){
+        glTexEnvf(GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -0.5);
         //glDisable(GL_CULL_FACE);
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
@@ -159,8 +169,11 @@ void GLWidget::paintGL()
             }
         }
     }
+    this->parent()->blockSignals(false);
+    this->blockSignals(false);
     QTime drawing_time = QTime::currentTime();
     glFinish();
+    //glFlush();
     QTime time = QTime::currentTime();
     if (this->show_t){
         if (this->last_time.msecsTo(time) > 17){
@@ -265,9 +278,9 @@ void GLWidget::animate(){
         this->animating = 0;
         anim_timer->stop();
         //Make texture more detailed when there is no animation.
-        glTexEnvf(GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -0.5);
+        this->big_image_bias = this->big_image_bias_static;
     }else{
-        glTexEnvf(GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -0.2);
+        this->big_image_bias = this->big_image_bias_moving;
     }
     foreach (GLAnimatedImage * img, this->active_imgs){
         img->remove_animators_for_del();
@@ -423,7 +436,7 @@ void GLWidget::newVideoFrame(GLImageVideo *gl_imagevideo, QVideoFrame &r_frame){
                      0, GL_BGRA, GL_UNSIGNED_BYTE,
                      r_frame.bits());
         r_frame.unmap();
-        glFlush();
+        //glFlush();
     }
 }
 
@@ -464,7 +477,7 @@ void GLWidget::set(CacheImage* image){
         }
     }
     //qDebug() << "End load texture." << t_load.msecsTo(QTime::currentTime());
-    glFlush();
+    //glFlush();
     this->setAnimations(new GLImage(image,
                                     this,
                                     textures,
@@ -571,7 +584,7 @@ void GLWidget::setCachedImages(QVector<CacheImage* > *images, int pos){
     }else{
         this->all_loaded = true;
     }
-    glFlush();
+    //glFlush();
 }
 
 
@@ -652,7 +665,9 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
                 NormalizeAngle(image->rotate);
             }
         }
-        this->updateGL();
+        if (!this->animating){
+            this->add_animator(0);
+        }
     }else{
         lastPos = event->pos();
         check_move_orto_position(lastPos);

@@ -47,7 +47,7 @@ Loader::~Loader(){
 }
 
 void Loader::start(){
-    QThread::start(Priority::IdlePriority);
+    QThread::start(Priority::LowestPriority);
 }
 
 void Loader::run(){

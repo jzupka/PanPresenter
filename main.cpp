@@ -21,14 +21,14 @@
 #include <QIcon>
 #include "presenter.h"
 
-#ifdef unix
+#ifdef __linux__
    #include <X11/Xlib.h>
 #endif
 
 
 int main(int argc, char *argv[])
 {
-    #ifdef unix
+    #ifdef __linux__
        XInitThreads();
     #endif
 

@@ -63,7 +63,7 @@ Presenter::Presenter(QMainWindow *parent):
     QGLFormat fmt = QGLFormat::defaultFormat();
     this->image_change_old_time = QTime::currentTime();
     fmt.setDoubleBuffer(true);
-    fmt.setSwapInterval(2);
+    fmt.setSwapInterval(1);
     gl_widget = new GLWidget(fmt, this);
     gl_widget->show();
     gl_widget->makeCurrent();

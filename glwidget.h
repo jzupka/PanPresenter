@@ -31,6 +31,7 @@
 class GLWidget : public QGLWidget
 {
     Q_OBJECT
+    friend class GLImageVideo;
 
 public:
     GLWidget(const QGLFormat fmt, QWidget *parent = 0, QGLWidget *shareWidget = 0);
@@ -132,6 +133,10 @@ private:
     float last_diff;
     float anim_time;
     float aver_time;
+    float big_image_bias;
+    float big_image_bias_moving;
+    float big_image_bias_static;
+    float thumbnail_bias;
     QDesktopWidget desktop;
     QMutex animate_event;
     QTimer mouse_inactivity;
