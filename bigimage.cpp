@@ -109,6 +109,12 @@ void copyScaledRect(uchar *out_img, uchar *in_img, int in_width,QRect copy_place
     int out_bline = copy_place.width() * 4;
     uchar *in = in_img;
     uchar *out = out_img;
+    // Limit number of working threads without that there could be problem with rendering thread.
+    int cpus = omp_get_max_threads()-2;
+    if (cpus < 1){
+        cpus = 1;
+    }
+    omp_set_num_threads(cpus);
     #pragma omp parallel
     if (!smoth){
         if (swith_color){
