@@ -104,7 +104,6 @@ GLImageVideo::GLImageVideo(GLWidget *painter, QString path, int max_texture_size
 GLImageVideo::~GLImageVideo()
 {
     glDeleteTextures(this->sgeom.vbo_data.size(), this->textures);
-    glFlush();
     delete[] this->textures;
     this->media_player->stop();
     delete this->media_player;

@@ -37,7 +37,6 @@ GLWidget::GLWidget(const QGLFormat fmt, QWidget *parent, QGLWidget *shareWidget)
     connect(&this->mouse_inactivity, SIGNAL(timeout()), this, SLOT(mouse_inactivity_Event()));
     this->mouse_inactivity.setSingleShot(true);
     this->anim_timer->setSingleShot(true);
-
     show_block = 0;
     show_wired = 0;
     geometry_type = GT_SQUEAR;
@@ -132,6 +131,7 @@ void GLWidget::paintGL()
     glLoadIdentity();
     glFrustum(-this->wh * 0.1, this->wh * 0.1, -this->hw * 0.1, this->hw * 0.1, 0.05, 4.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    QTime clear_time = QTime::currentTime();
     glMatrixMode(GL_MODELVIEW);
     glTexEnvf(GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, this->big_image_bias);
     for(int i = 0; i < active_imgs.size(); ++i){
@@ -173,11 +173,10 @@ void GLWidget::paintGL()
     this->blockSignals(false);
     QTime drawing_time = QTime::currentTime();
     glFinish();
-    //glFlush();
     QTime time = QTime::currentTime();
     if (this->show_t){
         if (this->last_time.msecsTo(time) > 17){
-            qDebug() << "Paiting" << this->last_time.msecsTo(time) << t.msecsTo(QTime::currentTime()) << "Drawt" << t.msecsTo(drawing_time);
+            qDebug() << "Paiting" << this->last_time.msecsTo(time) << t.msecsTo(QTime::currentTime()) << "Drawt" << t.msecsTo(drawing_time) << "Clear" << t.msecsTo(clear_time);
         }
     }
     check_other_threads();
@@ -285,7 +284,7 @@ void GLWidget::animate(){
     foreach (GLAnimatedImage * img, this->active_imgs){
         img->remove_animators_for_del();
     }
-    updateGL();
+    this->updateGL();
 }
 
 
@@ -306,7 +305,7 @@ void GLWidget::rectangle(){
         active_imgs[i]->reset();
     }
     this->geometry_type = GT_SQUEAR;
-    this->updateGL();
+    this->add_animator(0);
 }
 
 void GLWidget::cylindrical(){
@@ -316,7 +315,7 @@ void GLWidget::cylindrical(){
         active_imgs[i]->reset();
     }
     this->geometry_type = GT_CYLINDER;
-    this->updateGL();
+    this->add_animator(0);
 }
 
 void GLWidget::anim(float anim_time){
@@ -416,7 +415,7 @@ void GLWidget::newVideoFrame(GLImageVideo *gl_imagevideo, QVideoFrame &r_frame){
         glDeleteTextures(1, &gl_imagevideo->textures[0]);
         gl_imagevideo->textures[0] = (GLuint)0;
     }
-    //QVideoFrame *r_frame = (QVideoFrame)frame;
+
     if (r_frame.map(QAbstractVideoBuffer::ReadOnly)){
         glGenTextures(1, &gl_imagevideo->textures[0]);
         glBindTexture(GL_TEXTURE_2D, gl_imagevideo->textures[0]);
@@ -436,7 +435,6 @@ void GLWidget::newVideoFrame(GLImageVideo *gl_imagevideo, QVideoFrame &r_frame){
                      0, GL_BGRA, GL_UNSIGNED_BYTE,
                      r_frame.bits());
         r_frame.unmap();
-        //glFlush();
     }
 }
 
@@ -477,7 +475,6 @@ void GLWidget::set(CacheImage* image){
         }
     }
     //qDebug() << "End load texture." << t_load.msecsTo(QTime::currentTime());
-    //glFlush();
     this->setAnimations(new GLImage(image,
                                     this,
                                     textures,
@@ -584,7 +581,6 @@ void GLWidget::setCachedImages(QVector<CacheImage* > *images, int pos){
     }else{
         this->all_loaded = true;
     }
-    //glFlush();
 }
 
 
@@ -739,7 +735,6 @@ void GLWidget::wheelEvent(QWheelEvent *event){
             }
             //qDebug() << "Image zoom: " << image->zoom;
         }
-        this->updateGL();
     }else{
         QTime time = QTime::currentTime();
         if (this->old_scroll_time.msecsTo(time) > 20){
@@ -755,9 +750,9 @@ void GLWidget::wheelEvent(QWheelEvent *event){
             }
             this->scroll_new_pos(qq);
             this->setCachedImages(this->cached_images, qq);
-            if (!this->animating){
-                this->add_animator(0);
-            }
         }
+    }
+    if (!this->animating){
+        this->add_animator(0);
     }
 }

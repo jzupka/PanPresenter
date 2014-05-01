@@ -47,7 +47,6 @@ GLImage::GLImage(const GLImage& image):
 GLImage::~GLImage()
 {
     glDeleteTextures(this->sgeom.vbo_data.size(), this->textures);
-    glFlush();
     delete[] this->textures;
     delete geom;
 }
