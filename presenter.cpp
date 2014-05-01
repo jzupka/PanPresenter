@@ -68,15 +68,15 @@ Presenter::Presenter(QMainWindow *parent):
     gl_widget->show();
     gl_widget->makeCurrent();
     gl_widget->initGL();
-    this->loader = new Loader(gl_widget->max_texture_size, 3);
+    this->loader = new Loader(gl_widget->max_texture_size, 5);
     this->loader->start();
-    this->tloader = new Loader(gl_widget->max_texture_size, 10, QSize(200, 200));
+    this->tloader = new Loader(gl_widget->max_texture_size, 50, QSize(200, 200));
     this->tloader->start();
     gl_widget->setNewImageLoaded(this->tloader->newImageLoaded(),
                                  &this->tloader->clean_image_mux);
     this->setCentralWidget(gl_widget);
     this->Image_Ext = loader->supported_formats;
-    this->Video_Ext << "*.AVI" << "*.WEBM" << "*.MOV" << "*.M4V" << "*.OGV";
+    this->Video_Ext << "*.AVI" << "*.WEBM" << "*.MOV" << "*.M4V" << "*.OGV" << "*.MP4";
 
     setWindowTitle(tr("Textures"));
     connect(&this->image_change, SIGNAL(timeout()), this, SLOT(update_pos()));
