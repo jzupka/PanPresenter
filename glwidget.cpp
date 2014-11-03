@@ -61,7 +61,7 @@ GLWidget::GLWidget(const QGLFormat fmt, QWidget *parent, QGLWidget *shareWidget)
     this->scroll_pos = 0;
     this->thumb_window_size = 7;
     this->big_image_bias_static = -0.5;
-    this->big_image_bias_moving = -0.15;
+    this->big_image_bias_moving = -0.25;
     this->big_image_bias = this->big_image_bias_static;
     this->thumbnail_bias = -0.5;
     this->old_scroll_time = QTime::currentTime();
@@ -97,9 +97,17 @@ void GLWidget::initGL(){
 
 void GLWidget::initializeGL()
 {
+    qDebug() << "Widget OpenGl: " << format().majorVersion() << "." << format().minorVersion();
+    qDebug() << "Context valid: " << context()->isValid();
+    qDebug() << "Really used OpenGl: " << context()->format().majorVersion() << "." << context()->format().minorVersion();
+    qDebug() << "OpenGl information: VENDOR:       " << (const char*)glGetString(GL_VENDOR);
+    qDebug() << "                    RENDERDER:    " << (const char*)glGetString(GL_RENDERER);
+    qDebug() << "                    VERSION:      " << (const char*)glGetString(GL_VERSION);
+    qDebug() << "                    GLSL VERSION: " << (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
     //makeObject();
     this->makeCurrent();
     glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
     glEnable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
@@ -672,73 +680,73 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 
 
 void GLWidget::wheelEvent(QWheelEvent *event){
-    if (thumbnail_alfa == 0.0){
-        for(int i = 0; i < this->active_imgs.size(); i++){
-            GLAnimatedImage* image = this->active_imgs[i];
-            image->stop_animators();
+    QTime time = QTime::currentTime();
+    if (this->old_scroll_time.msecsTo(time) > 20){
+        this->old_scroll_time = time;
+        if (thumbnail_alfa == 0.0){
+            for(int i = 0; i < this->active_imgs.size(); i++){
+                GLAnimatedImage* image = this->active_imgs[i];
+                image->stop_animators();
 
-            float multipler = 0.85;
-            if (event->delta() > 0){
-                multipler = 1.25;
-            }
-            float zoom = image->zoom * multipler;
-
-            if (zoom > 0.5 && zoom < 40){
-                float dxc = 0;
-                float dyc = 0;
-                float rx = 0.0;
-                float ry = 0.0;
-                if(image->geom->type == GT_SQUEAR){
-                    this->lastPos = event->pos();
-                    float zoom_t_x = (2 * image->mouse_pos_constant / (image->zoom * this->width()));
-                    float zoom_t_y = (2 * image->mouse_pos_constant * this->hw / (image->zoom * this->height()));
-                    if (multipler > 1.0){
-                        dxc = ((this->lastPos.x() - this->width() / 2) * (1.0 - 1.0 / multipler));
-                        dyc = ((this->lastPos.y() - this->height() / 2) * (1.0 - 1.0 / multipler));
-                    }else{
-                        dxc = ((image->delta[0] / zoom_t_x)) / (image->zoom * image->zoom);
-                        dyc = -((image->delta[1] / zoom_t_y)) / (image->zoom * image->zoom);
-                    }
-                    image->delta[0] += zoom_t_x * (-dxc);
-                    image->delta[1] -= zoom_t_y * (-dyc);
-                    //qDebug() << image->delta[0] << image->delta[1] << zoom_t_x;
-                    memcpy(this->active_imgs[i]->delta_backup, this->active_imgs[i]->delta, sizeof(float) * 3);
+                float multipler = 0.90;
+                if (event->delta() > 0){
+                    multipler = 1.10;
                 }
-                else if (image->geom->type == GT_CYLINDER){
-                    this->lastPos = event->pos();
-                    if (multipler > 1.0){
-                        dxc = 2.5 * image->mouse_pos_constant * ((float)(this->lastPos.x() - this->width() / 2)) / (this->width() * image->zoom);
-                        dyc = this->hw * 2.5 * image->mouse_pos_constant * ((float)(this->lastPos.y() - this->height() / 2)) / (this->height() * image->zoom);
-                        rx = atan(dxc) * 180.0 / PI_F  * (1.0 - 1.0 / multipler);
-                        ry = atan(dyc) * 180.0 / PI_F * (1.0 - 1.0 / multipler);
-                    }else{
-                        rx = 0.0;
-                        ry = -(image->rotate[1] / (image->zoom * image->zoom));
-                    }
-                    //qDebug() << rx << ry;
-                    image->rotate[0] += (rx);
-                    image->rotate[1] += (ry);
-                    memcpy(this->active_imgs[i]->rotate_backup, this->active_imgs[i]->rotate, sizeof(float) * 3);
-                    NormalizeAngle(image->rotate);
-                }
-            }
+                float zoom = image->zoom * multipler;
 
-            image->zoom = zoom;
-            if (image->zoom < 0.5){
-                image->zoom = 0.5;
-            }else if (image->zoom > 40){
-                image->zoom /= 1.25;
-            }else{
-                //image->delta[0] *= multipler;
-                //image->delta[1] *= multipler;
-                //memcpy(this->active_imgs[i]->delta_backup, this->active_imgs[i]->delta, sizeof(float) * 3);
+                if (zoom > 0.5 && zoom < 40){
+                    float dxc = 0;
+                    float dyc = 0;
+                    float rx = 0.0;
+                    float ry = 0.0;
+                    if(image->geom->type == GT_SQUEAR){
+                        this->lastPos = event->pos();
+                        float zoom_t_x = (2 * image->mouse_pos_constant / (image->zoom * this->width()));
+                        float zoom_t_y = (2 * image->mouse_pos_constant * this->hw / (image->zoom * this->height()));
+                        if (multipler > 1.0){
+                            dxc = ((this->lastPos.x() - this->width() / 2) * (1.0 - 1.0 / multipler));
+                            dyc = ((this->lastPos.y() - this->height() / 2) * (1.0 - 1.0 / multipler));
+                        }else{
+                            dxc = ((image->delta[0] / zoom_t_x)) / (10 * image->zoom * image->zoom);
+                            dyc = -((image->delta[1] / zoom_t_y)) / (10 * image->zoom * image->zoom);
+                        }
+                        image->delta[0] += zoom_t_x * (-dxc);
+                        image->delta[1] -= zoom_t_y * (-dyc);
+                        //qDebug() << image->delta[0] << image->delta[1] << zoom_t_x;
+                        memcpy(this->active_imgs[i]->delta_backup, this->active_imgs[i]->delta, sizeof(float) * 3);
+                    }
+                    else if (image->geom->type == GT_CYLINDER){
+                        this->lastPos = event->pos();
+                        if (multipler > 1.0){
+                            dxc = 2.5 * image->mouse_pos_constant * ((float)(this->lastPos.x() - this->width() / 2)) / (this->width() * image->zoom);
+                            dyc = this->hw * 2.5 * image->mouse_pos_constant * ((float)(this->lastPos.y() - this->height() / 2)) / (this->height() * image->zoom);
+                            rx = atan(dxc) * 180.0 / PI_F  * (1.0 - 1.0 / multipler);
+                            ry = atan(dyc) * 180.0 / PI_F * (1.0 - 1.0 / multipler);
+                        }else{
+                            rx = 0.0;
+                            ry = -(image->rotate[1] / (image->zoom * image->zoom));
+                        }
+                        //qDebug() << rx << ry;
+                        image->rotate[0] += (rx);
+                        image->rotate[1] += (ry);
+                        memcpy(this->active_imgs[i]->rotate_backup, this->active_imgs[i]->rotate, sizeof(float) * 3);
+                        NormalizeAngle(image->rotate);
+                    }
+                }
+
+                image->zoom = zoom;
+                if (image->zoom < 0.5){
+                    image->zoom = 0.5;
+                }else if (image->zoom > 40){
+                    image->zoom /= 1.25;
+                }else{
+                    //image->delta[0] *= multipler;
+                    //image->delta[1] *= multipler;
+                    //memcpy(this->active_imgs[i]->delta_backup, this->active_imgs[i]->delta, sizeof(float) * 3);
+                }
+                //qDebug() << "Image zoom: " << image->zoom;
             }
-            //qDebug() << "Image zoom: " << image->zoom;
-        }
-    }else{
-        QTime time = QTime::currentTime();
-        if (this->old_scroll_time.msecsTo(time) > 20){
-            this->old_scroll_time = time;
+        }else{
             if (event->delta() > 0){
                 this->scroll_pos--;
             }else{

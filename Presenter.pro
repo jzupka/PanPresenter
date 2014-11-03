@@ -43,7 +43,7 @@ unix {
     INSTALLS += launcher icons
 }
 
-unix:!macx:!symbian: LIBS += -lX11 -lgomp -lXext -ldl -lXext -lGL#-ltcmalloc
+unix:!macx:!symbian: LIBS += -lX11 -lgomp -lXext -ldl -lXext -lGL
 QMAKE_CXXFLAGS_RELEASE = -O3 -march=native -mtune=native -fopenmp -std=c++11
 QMAKE_CXXFLAGS_DEBUG = -g3 -fopenmp -std=c++11
 
